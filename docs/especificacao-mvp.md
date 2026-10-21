@@ -1,8 +1,8 @@
-# Prismo Connect: Especificação do MVP (versão 0.1)
+# Prismo Connect: Especificação do MVP (versão 0.2)
 
 ## 1. Visão geral
 
-Prismo Connect é um aplicativo web de comunicação em comunidades, com servidores, canais de texto, cargos e mensagens privadas. O primeiro uso é um grupo pequeno de amigos, para testar. Se funcionar, o projeto será expandido.
+Prismo Connect é um aplicativo web de comunicação em comunidades, com servidores, canais de texto e de voz, cargos, mensagens privadas e lista de amigos. O primeiro uso é um grupo pequeno de amigos, para testar. Se funcionar, o projeto será expandido.
 
 **Princípio de projeto:** as funções são inspiradas em ideias gerais de chat, mas nome, código, layout, ícones e textos são escritos do zero. Não usar a marca, o código ou os recursos de qualquer outro produto.
 
@@ -15,38 +15,43 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 ### Dentro do MVP
 1. Contas e perfil
 2. Servidores
-3. Canais de texto
+3. Canais de texto e de voz
 4. Cargos e permissões
 5. Mensagens
 6. Mensagens diretas e grupos
+7. Voz (canais de voz)
+8. Lista de amigos
 
 ### Fora do MVP (próximas etapas, nesta ordem)
-7. Voz e vídeo
-8. Notificações avançadas (push, desktop)
-9. Moderação (silenciar, banir, log de ações)
-10. Bots e API pública
-11. Aplicativos desktop e mobile nativos
+9. Compartilhamento de tela e vídeo com câmera
+10. Notificações avançadas (push, desktop)
+11. Moderação (silenciar, banir, log de ações)
+12. Bots e API pública
+13. Aplicativos desktop e mobile nativos
 
 ## 3. Stack
 
-- **Back-end:** Node.js com TypeScript, framework Fastify ou Express
-- **Tempo real:** WebSockets (biblioteca ws ou Socket.IO)
-- **Banco de dados:** PostgreSQL, com Prisma ou Drizzle como ORM
+- **Back-end:** Node.js 22 com TypeScript, framework Fastify
+- **Banco de dados:** PostgreSQL 16, com driver `pg` e migrações em SQL. Sem ORM no MVP, para manter o código simples e fácil de revisar
+- **Tempo real:** WebSockets (biblioteca `ws`, acoplada ao Fastify)
+- **Voz:** WebRTC no navegador, com conexões diretas entre participantes (malha) em canais de até 8 pessoas. Servidor STUN e TURN (coturn) para atravessar redes e firewalls
 - **Front-end:** React com TypeScript, Vite como ferramenta de build
-- **Autenticação:** senhas com hash Argon2 ou bcrypt; sessões por token com expiração
+- **Autenticação:** senhas com hash scrypt (módulo nativo do Node, sem compilação); sessões por token aleatório, guardado como hash no banco e enviado em cookie httpOnly
+- **Validação:** schemas com Zod nas entradas da API
 - **Armazenamento de arquivos:** disco local no início, depois armazenamento de objetos (S3 ou compatível)
-- **Hospedagem inicial:** Railway ou Render
+- **Hospedagem inicial:** servidor de containers (Docker), com PostgreSQL gerenciado
 - **Controle de versão:** GitHub, com revisão de código antes de mesclar
 
 ## 4. Modelo de dados (simplificado)
 
-- **Usuário:** id, nome de usuário (único), nome de exibição, e-mail (único), hash da senha, data de nascimento (não pública), avatar, status, data de criação
-- **Sessão:** id, usuário, token (hash), criada em, expira em, dispositivo
+- **Usuário:** id, nome de usuário (único), nome de exibição, e-mail (único), hash da senha, data de nascimento (não pública), e-mail confirmado, avatar, bio, status, data de criação, tentativas de login e bloqueio até
+- **Sessão:** id, usuário, hash do token, criada em, expira em, dispositivo
+- **Amizade:** usuário A, usuário B, status (pendente, aceita, bloqueada), quem enviou, criada em
 - **Servidor:** id, nome, ícone, dono, data de criação
 - **Membro:** usuário, servidor, apelido, data de entrada
 - **Convite:** código, servidor, criado por, expira em, limite de usos, usos atuais
 - **Categoria:** id, servidor, nome, ordem
-- **Canal:** id, servidor, categoria, nome, tópico, ordem
+- **Canal:** id, servidor, categoria, tipo (texto ou voz), nome, tópico, ordem
 - **Cargo:** id, servidor, nome, cor, posição na hierarquia, permissões (lista de flags)
 - **Cargo do membro:** membro, cargo
 - **Permissão de canal:** canal, cargo ou usuário, permitido/negado por flag
@@ -57,6 +62,7 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - **Conversa direta:** id, tipo (direta ou grupo), nome (só grupos), ícone (só grupos), criada em
 - **Participante de conversa:** conversa, usuário, entrada em
 - **Mensagem fixada:** canal ou conversa, mensagem, fixada por, data
+- **Presença em canal de voz:** canal, usuário, entrada em, mudo, surdo
 
 ## 5. Funções detalhadas
 
@@ -72,6 +78,7 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 **F1.2 Login e sessão**
 - Login com e-mail ou nome de usuário, mais senha
 - Sessão válida por 30 dias, com renovação ao usar
+- Token de sessão enviado em cookie httpOnly, seguro e com SameSite
 - Tela de sessões ativas, com opção de encerrar cada uma
 - Após 5 tentativas erradas, bloqueio temporário de 15 minutos
 - Critério de aceite: encerrar uma sessão a derruba em até 1 minuto
@@ -86,9 +93,8 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - Critério de aceite: outros usuários veem o status atualizado em até 5 segundos
 
 **F1.5 Privacidade básica**
-- Opção de quem pode enviar mensagem direta: qualquer membro de servidor em comum, ou ninguém
-- Opção de mostrar ou esconder o status para usuários que não estão em servidor comum
-- Pendente: lista de amigos (ver seção 10). Enquanto não for definida, a opção "apenas amigos" não aparece
+- Opção de quem pode enviar mensagem direta: amigos, qualquer membro de servidor em comum, ou ninguém
+- Opção de mostrar ou esconder o status para usuários que não são amigos nem estão em servidor comum
 
 **F1.6 Excluir conta**
 - Usuário pode excluir a própria conta, com confirmação pela senha
@@ -101,7 +107,7 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 **F2.1 Criar servidor**
 - Nome (2 a 100 caracteres) e ícone opcional
 - O criador vira dono e recebe todas as permissões
-- Ao criar, o servidor já vem com uma categoria "Texto" e um canal "geral"
+- Ao criar, o servidor já vem com uma categoria "Texto", um canal "geral" e uma categoria "Voz", com um canal de voz "Sala geral"
 
 **F2.2 Editar e excluir servidor**
 - Apenas o dono edita nome e ícone e pode excluir
@@ -121,10 +127,11 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - Mostrar membros online e offline, separados
 - Mostrar cargo de maior hierarquia de cada membro, com a cor do cargo
 
-### 5.3 Canais de texto
+### 5.3 Canais de texto e de voz
 
 **F3.1 Criar, editar e excluir canal**
-- Nome (1 a 100 caracteres, sem espaços; hífen no lugar de espaço), tópico opcional (até 1024 caracteres)
+- Tipo: texto ou voz
+- Nome (1 a 100 caracteres, sem espaços; hífen no lugar de espaço), tópico opcional (até 1024 caracteres, só para canais de texto)
 - Criar, renomear e excluir exige a permissão "gerenciar canais"
 - Excluir um canal apaga suas mensagens, com confirmação
 
@@ -137,7 +144,8 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 
 **F3.4 Permissões por canal**
 - Cada canal pode sobrescrever as permissões do servidor para um cargo ou usuário
-- Flags: ver canal, enviar mensagem, anexar arquivos, mencionar todos, reagir, gerenciar mensagens
+- Flags de canal de texto: ver canal, enviar mensagem, anexar arquivos, mencionar todos, reagir, gerenciar mensagens
+- Flags de canal de voz: ver canal, conectar, falar
 
 ### 5.4 Cargos e permissões
 
@@ -210,40 +218,96 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - De 3 a 10 participantes, com nome e ícone opcionais
 - Qualquer participante adiciona ou remove outro; quem criou o grupo pode renomear
 - Participante pode sair do grupo; o grupo continua para os demais
+- Só é possível adicionar usuários que permitem mensagem direta de quem os adiciona (ver F1.5)
 
 **F6.3 Lista de conversas**
 - Barra lateral com conversas recentes, ordenadas pela última mensagem
 - Indicador de mensagens não lidas
 
+### 5.7 Voz
+
+**F7.1 Entrar e sair de canal de voz**
+- Clicar em um canal de voz conecta o usuário; ele só pode estar em um canal de voz por vez
+- Lista de participantes aparece abaixo do nome do canal, para quem tem permissão de ver o canal
+- Sair pelo botão de desconectar ou ao fechar a aba
+
+**F7.2 Mudo e surdez**
+- Botão de mudo (não envia áudio) e botão de surdez (não ouve nem envia áudio)
+- Estado visível para os outros participantes
+
+**F7.3 Indicador de quem fala**
+- Destaque visual ao redor do avatar de quem está falando
+
+**F7.4 Limite de participantes**
+- Até 8 pessoas por canal de voz no MVP, por causa das conexões diretas entre participantes
+- Ao atingir o limite, o usuário vê mensagem clara e não consegue entrar
+
+**F7.5 Permissões de voz**
+- Conectar e falar são permissões separadas, por cargo ou usuário (ver F3.4)
+- Quem não tem "falar" entra apenas para ouvir
+
+**F7.6 Privacidade e segurança da voz**
+- Áudio trafega criptografado pelo WebRTC (DTLS e SRTP)
+- Nenhum áudio é gravado no MVP
+- O navegador pede permissão de microfone; sem permissão, o usuário ainda pode entrar para ouvir
+
+**F7.7 Falhas de conexão**
+- Se a conexão direta com um participante falhar, o sistema tenta pelo servidor TURN
+- Mensagem clara ao usuário se não for possível conectar
+
+### 5.8 Lista de amigos
+
+**F8.1 Enviar pedido**
+- Enviar pedido pelo nome de usuário exato
+- Não é possível enviar pedido para quem bloqueou o remetente, nem para si mesmo
+- Critério de aceite: o destinatário recebe o pedido na aba de amigos, sem revelar se bloqueou o remetente
+
+**F8.2 Aceitar ou recusar**
+- Pedidos pendentes aparecem em uma aba própria, com contagem
+- Recusar remove o pedido sem avisar o remetente
+
+**F8.3 Remover amigo**
+- Qualquer um dos dois pode remover a amizade; a remoção não impede novos pedidos
+
+**F8.4 Bloquear**
+- Bloqueado não envia pedido, não envia mensagem direta e não vê o status do bloqueador
+- O bloqueador não vê mensagens novas do bloqueado em conversas diretas; conversas em servidores comuns continuam visíveis
+
+**F8.5 Lista de amigos**
+- Lista separada entre online e offline, com o mesmo status do perfil (F1.4)
+- Ação rápida para iniciar conversa direta
+
 ## 6. Telas
 
 1. **Entrada:** login, cadastro, recuperação de senha
-2. **Início:** lista de servidores à esquerda, conversas diretas e servidores ativos
-3. **Servidor:** categorias e canais à esquerda, mensagens no centro, lista de membros à direita
-4. **Configurações do servidor:** perfil, convites, cargos, canais, membros
-5. **Configurações do usuário:** perfil, privacidade, sessões, senha
-6. **Conversa direta ou grupo:** mensagens no centro, participantes à direita
+2. **Início:** lista de servidores à esquerda, aba de amigos e conversas diretas, com acesso a pedidos pendentes
+3. **Servidor:** categorias e canais (texto e voz) à esquerda, mensagens no centro, lista de membros à direita
+4. **Painel de voz:** participantes com indicador de fala, botões de mudo, surdez e desconectar, visível enquanto o usuário está em um canal de voz
+5. **Configurações do servidor:** perfil, convites, cargos, canais, membros
+6. **Configurações do usuário:** perfil, privacidade, sessões, senha
+7. **Conversa direta ou grupo:** mensagens no centro, participantes à direita
 
 ## 7. Requisitos não funcionais
 
-- **Desempenho:** carregar a tela de um canal em menos de 2 segundos em conexão comum
+- **Desempenho:** carregar a tela de um canal em menos de 2 segundos em conexão comum; entrar em canal de voz em menos de 3 segundos
 - **Segurança:** HTTPS obrigatório; senhas nunca em texto puro; tokens de sessão guardados com hash; validação de todas as entradas no servidor; proteção contra XSS na renderização de mensagens (Markdown sanitizado)
-- **Privacidade:** nenhuma coleta de dados além do necessário; logs sem conteúdo de mensagens
+- **Privacidade:** nenhuma coleta de dados além do necessário; logs sem conteúdo de mensagens; nenhum áudio gravado
 - **Acessibilidade:** navegação por teclado; contraste mínimo de 4.5:1; textos alternativos em avatares e ícones
 - **Idioma:** português brasileiro na primeira versão; estrutura pronta para tradução
 
 ## 8. Ordem de desenvolvimento
 
-**Etapa 0: preparação (1 a 2 dias)**
-- Criar repositório no GitHub com licença AGPL-3.0, README e este documento
-- Configurar ambiente local com Node, PostgreSQL e Docker Compose
+**Etapa 0: preparação (concluída)**
+- Repositório no GitHub com licença AGPL-3.0, README e esta especificação
+- Ambiente local com Node, PostgreSQL e Docker Compose
 
 **Etapa 1: contas (F1)**
-- Cadastro, login, sessões, perfil
+- 1a: cadastro, login, sessões em cookie, perfil, exclusão de conta
+- 1b: confirmação de e-mail e recuperação de senha (depende de provedor de e-mail)
 - Testes automáticos para autenticação
 
 **Etapa 2: servidores e canais (F2 e F3)**
-- Criar servidor, convites, canais e categorias
+- Criar servidor, convites, canais de texto e de voz, categorias
 - Lista de membros
 
 **Etapa 3: cargos e permissões (F4)**
@@ -255,16 +319,22 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - Tempo real por WebSocket
 - Anexos e histórico
 
-**Etapa 5: conversas diretas e grupos (F6)**
+**Etapa 5: lista de amigos e conversas diretas (F8 e F6)**
+- Amizades e bloqueio antes das conversas diretas, porque a privacidade das mensagens depende deles
 
-**Etapa 6: testes com o grupo de amigos**
+**Etapa 6: voz (F7)**
+- Conexão WebRTC entre participantes, controles de mudo e surdez, indicador de fala
+- Servidor STUN e TURN configurado e testado com duas redes diferentes
+
+**Etapa 7: testes com o grupo de amigos**
 - Uso real por uma semana
 - Lista de bugs e pedidos priorizados antes da próxima versão
 
 ## 9. Critérios de conclusão do MVP
 
-- Todos os critérios de aceite das funções F1 a F6 passam
+- Todos os critérios de aceite das funções F1 a F8 passam
 - Dois ou mais usuários conversam em tempo real sem queda por 24 horas de uso
+- Quatro ou mais usuários conversam por voz em um canal sem queda por 1 hora
 - Dono, moderador e membro comum têm as permissões corretas nos testes
 - Nenhuma senha ou token aparece em logs
 - O grupo de amigos usa o sistema por uma semana sem bloqueios graves
@@ -278,9 +348,11 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - Pendente: confirmar a configuração do subdomínio e checar conflito de marca dentro da PrismoLab
 
 **Infraestrutura da instância beta (MVP)**
-- Aplicação: 2 a 4 vCPUs, 4 a 8 GB de RAM, em containers Docker, com WebSockets (e WebRTC quando voz entrar)
+- Aplicação: 2 a 4 vCPUs, 4 a 8 GB de RAM, em containers Docker, com WebSockets
+- Servidor de voz: coturn (STUN e TURN), em instância separada, com 2 vCPUs e 2 GB de RAM para começar
 - Banco: PostgreSQL gerenciado, 2 vCPUs, 4 GB de RAM
 - Arquitetura preparada para auto-scaling conforme o número de usuários ativos cresce
+- Voz em malha tem limite de 8 pessoas por canal; acima disso será necessário um servidor de mídia (SFU), fora do MVP
 
 **Retenção de dados**
 - Mensagens de canais ativos são mantidas
@@ -296,5 +368,4 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 **Decisões ainda abertas**
 - Quantidade inicial de servidores e usuários por instância
 - Prazo exato de arquivamento de mensagens inativas
-- Lista de amigos: se entra no MVP e como funciona (pedido, aceite, bloqueio)
-- Voz: o briefing cita salas de voz, mas a especificação as deixa para depois. Confirmar se algum teste precisa de voz já na primeira versão
+- Provedor de e-mail para confirmação de cadastro e recuperação de senha

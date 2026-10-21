@@ -4,18 +4,24 @@ Aplicativo de comunicação em comunidades, com servidores, canais de texto, car
 
 ## Status
 
-Em fase de especificação e preparação. A primeira versão (MVP) está em desenvolvimento e será testada por um grupo pequeno antes de qualquer expansão.
+Em desenvolvimento. A primeira versão (MVP) será testada por um grupo pequeno antes de qualquer expansão.
+
+- Etapa 0 (preparação): concluída
+- Etapa 1a (contas: cadastro, login, sessões, perfil, exclusão de conta): código escrito, testes pendentes de execução
+- Etapa 1b (confirmação de e-mail e recuperação de senha): pendente
 
 ## Escopo do MVP
 
 1. Contas e perfil
 2. Servidores
-3. Canais de texto
+3. Canais de texto e de voz
 4. Cargos e permissões
 5. Mensagens
 6. Mensagens diretas e grupos
+7. Voz (canais de até 8 pessoas)
+8. Lista de amigos
 
-Voz e vídeo, notificações avançadas, moderação, bots e aplicativos nativos ficam para as próximas etapas.
+Compartilhamento de tela, notificações avançadas, moderação, bots e aplicativos nativos ficam para as próximas etapas.
 
 ## Como rodar em desenvolvimento
 
