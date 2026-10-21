@@ -17,6 +17,28 @@ Em fase de especificação e preparação. A primeira versão (MVP) está em des
 
 Voz e vídeo, notificações avançadas, moderação, bots e aplicativos nativos ficam para as próximas etapas.
 
+## Como rodar em desenvolvimento
+
+Requisitos: Node.js 22 (ver `.nvmrc`), Docker e Docker Compose.
+
+```bash
+# 1. Configurar variáveis de ambiente
+cp .env.example .env
+
+# 2. Subir o PostgreSQL
+docker compose up -d postgres
+
+# 3. Instalar dependências do servidor
+cd server
+npm install
+
+# 4. Rodar os testes e iniciar o servidor
+npm test
+npm run dev
+```
+
+Com o servidor rodando, `http://localhost:3000/health` deve responder com `{"status":"ok","service":"prismo-connect"}`.
+
 ## Documentação
 
 - [Especificação do MVP](docs/especificacao-mvp.md): funções detalhadas, modelo de dados, telas, requisitos e ordem de desenvolvimento.

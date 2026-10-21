@@ -40,7 +40,7 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 
 ## 4. Modelo de dados (simplificado)
 
-- **Usuário:** id, nome de usuário (único), nome de exibição, e-mail (único), hash da senha, avatar, status, data de criação
+- **Usuário:** id, nome de usuário (único), nome de exibição, e-mail (único), hash da senha, data de nascimento (não pública), avatar, status, data de criação
 - **Sessão:** id, usuário, token (hash), criada em, expira em, dispositivo
 - **Servidor:** id, nome, ícone, dono, data de criação
 - **Membro:** usuário, servidor, apelido, data de entrada
@@ -63,10 +63,11 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 ### 5.1 Contas e perfil
 
 **F1.1 Cadastro**
-- Campos: e-mail, nome de usuário (3 a 32 caracteres, letras, números, ponto e sublinhado), senha (mínimo 8 caracteres)
+- Campos: e-mail, nome de usuário (3 a 32 caracteres, letras, números, ponto e sublinhado), senha (mínimo 8 caracteres), data de nascimento
 - Nome de usuário e e-mail devem ser únicos, verificados em tempo real
+- Quem informar idade menor de 13 anos não consegue concluir o cadastro; a data de nascimento não é exibida para outros usuários
 - Envio de e-mail de confirmação; conta fica limitada até confirmar
-- Critério de aceite: não é possível criar conta com e-mail ou nome de usuário já existente
+- Critério de aceite: não é possível criar conta com e-mail ou nome de usuário já existente, nem com idade abaixo de 13 anos
 
 **F1.2 Login e sessão**
 - Login com e-mail ou nome de usuário, mais senha
@@ -85,8 +86,15 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - Critério de aceite: outros usuários veem o status atualizado em até 5 segundos
 
 **F1.5 Privacidade básica**
-- Opção de quem pode enviar mensagem direta: qualquer membro de servidor em comum, ou apenas amigos
-- Opção de mostrar ou esconder status para não amigos
+- Opção de quem pode enviar mensagem direta: qualquer membro de servidor em comum, ou ninguém
+- Opção de mostrar ou esconder o status para usuários que não estão em servidor comum
+- Pendente: lista de amigos (ver seção 10). Enquanto não for definida, a opção "apenas amigos" não aparece
+
+**F1.6 Excluir conta**
+- Usuário pode excluir a própria conta, com confirmação pela senha
+- Mensagens e arquivos do usuário são apagados, conforme a política de retenção da seção 10
+- Mensagens em servidores ou conversas de outros usuários são exibidas como "usuário excluído", sem o conteúdo pessoal do perfil
+- Critério de aceite: após a exclusão, o nome de usuário fica disponível e a conta não pode mais ser usada para login
 
 ### 5.2 Servidores
 
@@ -180,7 +188,7 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 - Quem tem "gerenciar mensagens" fixa e desafixa
 
 **F5.7 Anexos**
-- Até 10 arquivos por mensagem, até 25 MB cada no MVP
+- Até 10 arquivos por mensagem, até 15 MB cada no MVP (limite alinhado à seção 10)
 - Pré-visualização de imagens; demais arquivos como link de download
 - Tipos bloqueados: executáveis (.exe, .bat, .sh, .msi), por segurança
 
@@ -265,9 +273,9 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 
 **Nome e domínio**
 - Nome oficial: Prismo Connect
-- Domínio principal: prismoconnect.com.br
-- Subdomínios: connect.prismo.com.br e prismoconnect.app
-- Pendente: confirmar disponibilidade desses domínios e do nome em registros de marca
+- Domínio principal: connect.prismolab.com.br (domínio já pertence à empresa)
+- Alternativas, se necessário no futuro: prismoconnect.com.br e prismoconnect.app
+- Pendente: confirmar a configuração do subdomínio e checar conflito de marca dentro da PrismoLab
 
 **Infraestrutura da instância beta (MVP)**
 - Aplicação: 2 a 4 vCPUs, 4 a 8 GB de RAM, em containers Docker, com WebSockets (e WebRTC quando voz entrar)
@@ -288,3 +296,5 @@ Prismo Connect é um aplicativo web de comunicação em comunidades, com servido
 **Decisões ainda abertas**
 - Quantidade inicial de servidores e usuários por instância
 - Prazo exato de arquivamento de mensagens inativas
+- Lista de amigos: se entra no MVP e como funciona (pedido, aceite, bloqueio)
+- Voz: o briefing cita salas de voz, mas a especificação as deixa para depois. Confirmar se algum teste precisa de voz já na primeira versão
